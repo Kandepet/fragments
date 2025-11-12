@@ -242,8 +242,10 @@
         
         function arrayBufferToBase85(buffer) {
             const bytes = new Uint8Array(buffer);
+            const originalLength = bytes.length;
             let result = '';
             
+            // Encode the data
             for (let i = 0; i < bytes.length; i += 4) {
                 let value = 0;
                 let numBytes = Math.min(4, bytes.length - i);
@@ -252,10 +254,12 @@
                     value = (value << 8) | bytes[i + j];
                 }
                 
+                // Pad with zeros if needed
                 for (let j = numBytes; j < 4; j++) {
                     value = value << 8;
                 }
                 
+                // Convert to base85 (5 characters)
                 const chars = [];
                 for (let j = 0; j < 5; j++) {
                     chars.unshift(BASE85[value % 85]);
@@ -265,27 +269,42 @@
                 result += chars.join('');
             }
             
-            return result;
+            // Prepend the original length (encoded in base85)
+            // This allows us to remove padding bytes during decoding
+            const lengthEncoded = originalLength.toString(36); // Use base36 for compactness
+            return lengthEncoded + ':' + result;
         }
         
         function base85ToArrayBuffer(str) {
+            // Extract the original length
+            const colonIndex = str.indexOf(':');
+            if (colonIndex === -1) {
+                throw new Error('Invalid base85 format - missing length prefix');
+            }
+            
+            const originalLength = parseInt(str.substring(0, colonIndex), 36);
+            const encoded = str.substring(colonIndex + 1);
+            
             const bytes = [];
             
-            for (let i = 0; i < str.length; i += 5) {
+            // Decode all groups
+            for (let i = 0; i < encoded.length; i += 5) {
                 let value = 0;
                 
-                for (let j = 0; j < 5 && i + j < str.length; j++) {
-                    const idx = BASE85.indexOf(str[i + j]);
+                for (let j = 0; j < 5 && i + j < encoded.length; j++) {
+                    const idx = BASE85.indexOf(encoded[i + j]);
                     if (idx === -1) throw new Error('Invalid base85 character');
                     value = value * 85 + idx;
                 }
                 
+                // Extract 4 bytes
                 for (let j = 3; j >= 0; j--) {
                     bytes.push((value >> (j * 8)) & 0xFF);
                 }
             }
             
-            return new Uint8Array(bytes).buffer;
+            // Trim to original length (removes padding bytes)
+            return new Uint8Array(bytes.slice(0, originalLength)).buffer;
         }
         
         // ========== URL OPTIMIZATION ==========
