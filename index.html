@@ -146,8 +146,8 @@
             return new Uint8Array(bytes).buffer;
         }
         
-        // Derive encryption key from password using PBKDF2
-        async function deriveKey(password, salt) {
+        // Derive encryption key and IV from password using PBKDF2
+        async function deriveKeyAndIV(password, salt) {
             const encoder = new TextEncoder();
             const passwordBuffer = encoder.encode(password);
             
@@ -157,11 +157,11 @@
                 passwordBuffer,
                 'PBKDF2',
                 false,
-                ['deriveKey']
+                ['deriveBits', 'deriveKey']
             );
             
-            // Derive actual encryption key
-            return await crypto.subtle.deriveKey(
+            // Derive 256 bits for key + 96 bits for IV = 352 bits total
+            const derivedBits = await crypto.subtle.deriveBits(
                 {
                     name: 'PBKDF2',
                     salt: salt,
@@ -169,13 +169,27 @@
                     hash: 'SHA-256'
                 },
                 keyMaterial,
+                352  // 256 bits for key + 96 bits for IV
+            );
+            
+            // Split the derived bits
+            const derivedArray = new Uint8Array(derivedBits);
+            const keyBytes = derivedArray.slice(0, 32);  // First 256 bits for key
+            const iv = derivedArray.slice(32, 44);  // Next 96 bits for IV
+            
+            // Import the key bytes as AES-GCM key
+            const key = await crypto.subtle.importKey(
+                'raw',
+                keyBytes,
                 {
                     name: 'AES-GCM',
-                    length: 256  // 256-bit key
+                    length: 256
                 },
                 false,
                 ['encrypt', 'decrypt']
             );
+            
+            return { key, iv };
         }
         
         // Encrypt URL with password
@@ -188,13 +202,10 @@
             // Step 2: Generate random salt (16 bytes)
             const salt = crypto.getRandomValues(new Uint8Array(16));
             
-            // Step 3: Generate random IV (12 bytes for GCM)
-            const iv = crypto.getRandomValues(new Uint8Array(12));
+            // Step 3: Derive encryption key and IV from password and salt
+            const { key, iv } = await deriveKeyAndIV(password, salt);
             
-            // Step 4: Derive encryption key from password
-            const key = await deriveKey(password, salt);
-            
-            // Step 5: Encrypt with AES-GCM
+            // Step 4: Encrypt with AES-GCM
             const encrypted = await crypto.subtle.encrypt(
                 {
                     name: 'AES-GCM',
@@ -204,13 +215,12 @@
                 data
             );
             
-            // Step 6: Combine salt + iv + encrypted data
-            const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+            // Step 5: Combine salt + encrypted data (no need to store IV)
+            const combined = new Uint8Array(salt.length + encrypted.byteLength);
             combined.set(salt, 0);
-            combined.set(iv, salt.length);
-            combined.set(new Uint8Array(encrypted), salt.length + iv.length);
+            combined.set(new Uint8Array(encrypted), salt.length);
             
-            // Step 7: Convert to base77
+            // Step 6: Convert to base77
             return arrayBufferToBase77(combined.buffer);
         }
         
@@ -221,13 +231,12 @@
                 const combined = base77ToArrayBuffer(encoded);
                 const combinedArray = new Uint8Array(combined);
                 
-                // Step 2: Extract salt, iv, and encrypted data
+                // Step 2: Extract salt and encrypted data
                 const salt = combinedArray.slice(0, 16);
-                const iv = combinedArray.slice(16, 28);
-                const encryptedData = combinedArray.slice(28);
+                const encryptedData = combinedArray.slice(16);
                 
-                // Step 3: Derive key from password
-                const key = await deriveKey(password, salt);
+                // Step 3: Derive key and IV from password and salt
+                const { key, iv } = await deriveKeyAndIV(password, salt);
                 
                 // Step 4: Decrypt with AES-GCM
                 const decrypted = await crypto.subtle.decrypt(
