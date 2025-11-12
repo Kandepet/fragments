@@ -94,34 +94,43 @@
         function arrayBufferToBase85(buffer) {
             const bytes = new Uint8Array(buffer);
             let result = '';
-            let i = 0;
             
-            while (i < bytes.length) {
-                let acc = 0;
-                let cnt = 0;
+            // Process complete 4-byte chunks
+            let i;
+            for (i = 0; i + 3 < bytes.length; i += 4) {
+                let value = (bytes[i] << 24) | (bytes[i + 1] << 16) | (bytes[i + 2] << 8) | bytes[i + 3];
+                // Convert to unsigned 32-bit
+                value = value >>> 0;
                 
-                // Collect up to 4 bytes
-                for (let j = 0; j < 4 && i < bytes.length; j++, i++) {
-                    acc = (acc << 8) + bytes[i];
-                    cnt++;
+                // Extract 5 base85 digits
+                for (let j = 4; j >= 0; j--) {
+                    result += BASE85[value % 85];
+                    value = Math.floor(value / 85);
                 }
-                
-                // Pad with zeros if needed
-                if (cnt < 4) {
-                    acc = acc << ((4 - cnt) * 8);
+            }
+            
+            // Handle remaining bytes (if any)
+            const remaining = bytes.length - i;
+            if (remaining > 0) {
+                let value = 0;
+                for (let j = 0; j < remaining; j++) {
+                    value = (value << 8) | bytes[i + j];
                 }
+                // Pad with zeros
+                value = value << ((4 - remaining) * 8);
+                value = value >>> 0;
                 
-                // Convert to base85
+                // Calculate how many base85 digits we need
+                const digitCount = Math.ceil(remaining * 5 / 4);
                 const digits = [];
-                for (let k = 0; k < 5; k++) {
-                    digits.unshift(acc % 85);
-                    acc = Math.floor(acc / 85);
+                for (let j = 0; j < 5; j++) {
+                    digits.push(value % 85);
+                    value = Math.floor(value / 85);
                 }
                 
-                // Only output the necessary digits
-                const outputCount = Math.ceil(cnt * 5 / 4);
-                for (let k = 0; k < outputCount; k++) {
-                    result += BASE85[digits[k]];
+                // Output only the required digits
+                for (let j = 0; j < digitCount; j++) {
+                    result += BASE85[digits[j]];
                 }
             }
             
@@ -131,33 +140,43 @@
         // Convert base85 string to ArrayBuffer
         function base85ToArrayBuffer(str) {
             const bytes = [];
-            let i = 0;
             
-            while (i < str.length) {
-                let acc = 0;
-                let cnt = 0;
+            // Process complete 5-character chunks
+            let i;
+            for (i = 0; i + 4 < str.length; i += 5) {
+                let value = 0;
                 
-                // Collect up to 5 base85 digits
-                for (let j = 0; j < 5 && i < str.length; j++, i++) {
-                    const idx = BASE85.indexOf(str[i]);
+                // Decode 5 base85 characters
+                for (let j = 4; j >= 0; j--) {
+                    const idx = BASE85.indexOf(str[i + j]);
                     if (idx === -1) throw new Error('Invalid base85 character');
-                    acc = acc * 85 + idx;
-                    cnt++;
+                    value = value * 85 + idx;
                 }
                 
-                // Calculate how many bytes we should extract
-                const byteCount = Math.floor(cnt * 4 / 5);
+                // Extract 4 bytes
+                for (let j = 3; j >= 0; j--) {
+                    bytes.push((value >> (j * 8)) & 0xFF);
+                }
+            }
+            
+            // Handle remaining characters (if any)
+            const remaining = str.length - i;
+            if (remaining > 0) {
+                let value = 0;
+                
+                // Decode remaining base85 characters
+                for (let j = remaining - 1; j >= 0; j--) {
+                    const idx = BASE85.indexOf(str[i + j]);
+                    if (idx === -1) throw new Error('Invalid base85 character');
+                    value = value * 85 + idx;
+                }
+                
+                // Calculate how many bytes to extract
+                const byteCount = Math.floor(remaining * 4 / 5);
                 
                 // Extract bytes
-                const extractedBytes = [];
-                for (let k = 0; k < 4; k++) {
-                    extractedBytes.unshift(acc & 0xFF);
-                    acc = acc >> 8;
-                }
-                
-                // Only add the necessary bytes
-                for (let k = 4 - byteCount; k < 4; k++) {
-                    bytes.push(extractedBytes[k]);
+                for (let j = byteCount - 1; j >= 0; j--) {
+                    bytes.push((value >> (j * 8 + (4 - byteCount) * 8)) & 0xFF);
                 }
             }
             
