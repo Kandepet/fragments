@@ -87,87 +87,60 @@
     </div>
 
     <script>
-        // URL-safe Base64 encoding (more reliable for URL usage)
-        const BASE64URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+        // URL-safe Base77 encoding - 77 characters that don't need URL encoding
+        const BASE77 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_.~!$&'()*+,;=";
         
-        // Convert ArrayBuffer to base64url string
-        function arrayBufferToBase64URL(buffer) {
+        // Convert ArrayBuffer to base77 string
+        function arrayBufferToBase77(buffer) {
             const bytes = new Uint8Array(buffer);
             let result = '';
             
-            // Process complete 3-byte chunks
-            let i;
-            for (i = 0; i + 2 < bytes.length; i += 3) {
-                const b1 = bytes[i];
-                const b2 = bytes[i + 1];
-                const b3 = bytes[i + 2];
-                
-                result += BASE64URL[b1 >> 2];
-                result += BASE64URL[((b1 & 0x03) << 4) | (b2 >> 4)];
-                result += BASE64URL[((b2 & 0x0F) << 2) | (b3 >> 6)];
-                result += BASE64URL[b3 & 0x3F];
+            // Convert entire byte array to BigInt
+            let value = 0n;
+            for (let i = 0; i < bytes.length; i++) {
+                value = (value << 8n) | BigInt(bytes[i]);
             }
             
-            // Handle remaining bytes
-            const remaining = bytes.length - i;
-            if (remaining === 1) {
-                const b1 = bytes[i];
-                result += BASE64URL[b1 >> 2];
-                result += BASE64URL[(b1 & 0x03) << 4];
-            } else if (remaining === 2) {
-                const b1 = bytes[i];
-                const b2 = bytes[i + 1];
-                result += BASE64URL[b1 >> 2];
-                result += BASE64URL[((b1 & 0x03) << 4) | (b2 >> 4)];
-                result += BASE64URL[(b2 & 0x0F) << 2];
+            // Convert to base77
+            if (value === 0n) {
+                result = BASE77[0];
+            } else {
+                while (value > 0n) {
+                    result = BASE77[Number(value % 77n)] + result;
+                    value = value / 77n;
+                }
             }
             
-            return result;
+            // Add length prefix to handle padding correctly
+            return bytes.length + ':' + result;
         }
         
-        // Convert base64url string to ArrayBuffer
-        function base64URLToArrayBuffer(str) {
-            const bytes = [];
-            
-            // Process complete 4-character chunks
-            let i;
-            for (i = 0; i + 3 < str.length; i += 4) {
-                const c1 = BASE64URL.indexOf(str[i]);
-                const c2 = BASE64URL.indexOf(str[i + 1]);
-                const c3 = BASE64URL.indexOf(str[i + 2]);
-                const c4 = BASE64URL.indexOf(str[i + 3]);
-                
-                if (c1 === -1 || c2 === -1 || c3 === -1 || c4 === -1) {
-                    throw new Error('Invalid base64url character');
-                }
-                
-                bytes.push((c1 << 2) | (c2 >> 4));
-                bytes.push(((c2 & 0x0F) << 4) | (c3 >> 2));
-                bytes.push(((c3 & 0x03) << 6) | c4);
+        // Convert base77 string to ArrayBuffer
+        function base77ToArrayBuffer(str) {
+            // Extract length prefix
+            const colonIndex = str.indexOf(':');
+            if (colonIndex === -1) {
+                throw new Error('Invalid base77 format - missing length prefix');
             }
             
-            // Handle remaining characters
-            const remaining = str.length - i;
-            if (remaining === 2) {
-                const c1 = BASE64URL.indexOf(str[i]);
-                const c2 = BASE64URL.indexOf(str[i + 1]);
-                
-                if (c1 === -1 || c2 === -1) {
-                    throw new Error('Invalid base64url character');
+            const originalLength = parseInt(str.substring(0, colonIndex));
+            const encoded = str.substring(colonIndex + 1);
+            
+            // Convert from base77 to BigInt
+            let value = 0n;
+            for (let i = 0; i < encoded.length; i++) {
+                const digit = BASE77.indexOf(encoded[i]);
+                if (digit === -1) {
+                    throw new Error('Invalid base77 character: ' + encoded[i]);
                 }
-                
-                bytes.push((c1 << 2) | (c2 >> 4));
-            } else if (remaining === 3) {
-                const c1 = BASE64URL.indexOf(str[i]);
-                const c2 = BASE64URL.indexOf(str[i + 1]);
-                const c3 = BASE64URL.indexOf(str[i + 2]);
-                
-                if (c1 === -1 || c2 === -1 || c3 === -1) {
-                    throw new Error('Invalid base64url character');
-                }
-                
-                bytes.push((c1 << 2) | (c2 >> 4));
-                bytes.push(((c2 & 0x0F) << 4) | (c3 >> 2));
+                value = value * 77n + BigInt(digit);
+            }
+            
+            // Convert BigInt to bytes
+            const bytes = [];
+            for (let i = originalLength - 1; i >= 0; i--) {
+                bytes[i] = Number(value & 0xFFn);
+                value = value >> 8n;
             }
             
             return new Uint8Array(bytes).buffer;
@@ -237,15 +210,15 @@
             combined.set(iv, salt.length);
             combined.set(new Uint8Array(encrypted), salt.length + iv.length);
             
-            // Step 7: Convert to base64url
-            return arrayBufferToBase64URL(combined.buffer);
+            // Step 7: Convert to base77
+            return arrayBufferToBase77(combined.buffer);
         }
         
         // Decrypt URL with password
         async function decryptUrl(encoded, password) {
             try {
-                // Step 1: Convert from base64url
-                const combined = base64URLToArrayBuffer(encoded);
+                // Step 1: Convert from base77
+                const combined = base77ToArrayBuffer(encoded);
                 const combinedArray = new Uint8Array(combined);
                 
                 // Step 2: Extract salt, iv, and encrypted data
