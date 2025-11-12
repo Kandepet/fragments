@@ -87,99 +87,87 @@
     </div>
 
     <script>
-        // Base85 (ASCII85) characters for encoding
-        const BASE85 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~";
+        // URL-safe Base64 encoding (more reliable for URL usage)
+        const BASE64URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
         
-        // Convert ArrayBuffer to base85 string
-        function arrayBufferToBase85(buffer) {
+        // Convert ArrayBuffer to base64url string
+        function arrayBufferToBase64URL(buffer) {
             const bytes = new Uint8Array(buffer);
             let result = '';
             
-            // Process complete 4-byte chunks
+            // Process complete 3-byte chunks
             let i;
-            for (i = 0; i + 3 < bytes.length; i += 4) {
-                let value = (bytes[i] << 24) | (bytes[i + 1] << 16) | (bytes[i + 2] << 8) | bytes[i + 3];
-                // Convert to unsigned 32-bit
-                value = value >>> 0;
+            for (i = 0; i + 2 < bytes.length; i += 3) {
+                const b1 = bytes[i];
+                const b2 = bytes[i + 1];
+                const b3 = bytes[i + 2];
                 
-                // Extract 5 base85 digits (in reverse order for proper encoding)
-                const chars = [];
-                for (let j = 0; j < 5; j++) {
-                    chars.push(BASE85[value % 85]);
-                    value = Math.floor(value / 85);
-                }
-                result += chars.reverse().join('');
+                result += BASE64URL[b1 >> 2];
+                result += BASE64URL[((b1 & 0x03) << 4) | (b2 >> 4)];
+                result += BASE64URL[((b2 & 0x0F) << 2) | (b3 >> 6)];
+                result += BASE64URL[b3 & 0x3F];
             }
             
-            // Handle remaining bytes (if any)
+            // Handle remaining bytes
             const remaining = bytes.length - i;
-            if (remaining > 0) {
-                let value = 0;
-                for (let j = 0; j < remaining; j++) {
-                    value = (value << 8) | bytes[i + j];
-                }
-                // Pad with zeros
-                value = value << ((4 - remaining) * 8);
-                value = value >>> 0;
-                
-                // Calculate how many base85 digits we need
-                const digitCount = Math.ceil(remaining * 5 / 4);
-                const digits = [];
-                for (let j = 0; j < 5; j++) {
-                    digits.push(value % 85);
-                    value = Math.floor(value / 85);
-                }
-                
-                // Output only the required digits (reversed)
-                for (let j = digitCount - 1; j >= 0; j--) {
-                    result += BASE85[digits[j]];
-                }
+            if (remaining === 1) {
+                const b1 = bytes[i];
+                result += BASE64URL[b1 >> 2];
+                result += BASE64URL[(b1 & 0x03) << 4];
+            } else if (remaining === 2) {
+                const b1 = bytes[i];
+                const b2 = bytes[i + 1];
+                result += BASE64URL[b1 >> 2];
+                result += BASE64URL[((b1 & 0x03) << 4) | (b2 >> 4)];
+                result += BASE64URL[(b2 & 0x0F) << 2];
             }
             
             return result;
         }
         
-        // Convert base85 string to ArrayBuffer
-        function base85ToArrayBuffer(str) {
+        // Convert base64url string to ArrayBuffer
+        function base64URLToArrayBuffer(str) {
             const bytes = [];
             
-            // Process complete 5-character chunks
+            // Process complete 4-character chunks
             let i;
-            for (i = 0; i + 4 < str.length; i += 5) {
-                let value = 0;
+            for (i = 0; i + 3 < str.length; i += 4) {
+                const c1 = BASE64URL.indexOf(str[i]);
+                const c2 = BASE64URL.indexOf(str[i + 1]);
+                const c3 = BASE64URL.indexOf(str[i + 2]);
+                const c4 = BASE64URL.indexOf(str[i + 3]);
                 
-                // Decode 5 base85 characters (most significant first)
-                for (let j = 0; j < 5; j++) {
-                    const idx = BASE85.indexOf(str[i + j]);
-                    if (idx === -1) throw new Error('Invalid base85 character');
-                    value = value * 85 + idx;
+                if (c1 === -1 || c2 === -1 || c3 === -1 || c4 === -1) {
+                    throw new Error('Invalid base64url character');
                 }
                 
-                // Extract 4 bytes
-                for (let j = 3; j >= 0; j--) {
-                    bytes.push((value >> (j * 8)) & 0xFF);
-                }
+                bytes.push((c1 << 2) | (c2 >> 4));
+                bytes.push(((c2 & 0x0F) << 4) | (c3 >> 2));
+                bytes.push(((c3 & 0x03) << 6) | c4);
             }
             
-            // Handle remaining characters (if any)
+            // Handle remaining characters
             const remaining = str.length - i;
-            if (remaining > 0) {
-                let value = 0;
+            if (remaining === 2) {
+                const c1 = BASE64URL.indexOf(str[i]);
+                const c2 = BASE64URL.indexOf(str[i + 1]);
                 
-                // Decode remaining base85 characters (most significant first)
-                for (let j = 0; j < remaining; j++) {
-                    const idx = BASE85.indexOf(str[i + j]);
-                    if (idx === -1) throw new Error('Invalid base85 character');
-                    value = value * 85 + idx;
+                if (c1 === -1 || c2 === -1) {
+                    throw new Error('Invalid base64url character');
                 }
                 
-                // Calculate how many bytes to extract
-                const byteCount = Math.floor(remaining * 4 / 5);
+                bytes.push((c1 << 2) | (c2 >> 4));
+            } else if (remaining === 3) {
+                const c1 = BASE64URL.indexOf(str[i]);
+                const c2 = BASE64URL.indexOf(str[i + 1]);
+                const c3 = BASE64URL.indexOf(str[i + 2]);
                 
-                // Extract bytes
-                for (let j = byteCount - 1; j >= 0; j--) {
-                    bytes.push((value >> (j * 8 + (4 - byteCount) * 8)) & 0xFF);
+                if (c1 === -1 || c2 === -1 || c3 === -1) {
+                    throw new Error('Invalid base64url character');
                 }
+                
+                bytes.push((c1 << 2) | (c2 >> 4));
+                bytes.push(((c2 & 0x0F) << 4) | (c3 >> 2));
             }
             
             return new Uint8Array(bytes).buffer;
@@ -249,15 +237,15 @@
             combined.set(iv, salt.length);
             combined.set(new Uint8Array(encrypted), salt.length + iv.length);
             
-            // Step 7: Convert to base85
-            return arrayBufferToBase85(combined.buffer);
+            // Step 7: Convert to base64url
+            return arrayBufferToBase64URL(combined.buffer);
         }
         
         // Decrypt URL with password
         async function decryptUrl(encoded, password) {
             try {
-                // Step 1: Convert from base85
-                const combined = base85ToArrayBuffer(encoded);
+                // Step 1: Convert from base64url
+                const combined = base64URLToArrayBuffer(encoded);
                 const combinedArray = new Uint8Array(combined);
                 
                 // Step 2: Extract salt, iv, and encrypted data
