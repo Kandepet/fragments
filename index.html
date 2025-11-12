@@ -195,6 +195,72 @@
         button:disabled {
             animation: pulse 1.5s ease-in-out infinite;
         }
+        
+        .footer {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: right;
+        }
+        
+        .footer a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .link-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .link-container code {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        
+        .link-container a {
+            color: #48bb78;
+            text-decoration: none;
+        }
+        
+        .link-container a:hover {
+            text-decoration: underline;
+        }
+        
+        .copy-btn {
+            padding: 8px 12px;
+            background: #4a5568;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+        
+        .copy-btn:hover {
+            background: #2d3748;
+            transform: translateY(0);
+            box-shadow: none;
+        }
+        
+        .copy-btn.copied {
+            background: #48bb78;
+        }
+        
+        .copy-btn:disabled {
+            animation: none;
+        }
     </style>
 </head>
 <body>
@@ -203,17 +269,17 @@
         <div id="createMode">
             <h1>Fragments</h1>
             <p class="tagline">Create encrypted, self-destructing URLs</p>
-            <div class="security-badge">AES-256-GCM Encryption</div>
             
             <input type="text" id="longUrl" placeholder="Enter URL to encrypt">
             <input type="password" id="secretKey" placeholder="Create a secret key">
             <button onclick="createLink()" id="createBtn">Generate Encrypted Link</button>
             
             <div id="createResult" class="result hidden">
-                <p>Your encrypted fragment:</p>
-                <code id="fragment"></code>
-                <p>Full link:</p>
-                <code id="fullLink"></code>
+                <p>Encrypted link:</p>
+                <div class="link-container">
+                    <code><a id="fullLinkAnchor" href="#" target="_blank"></a></code>
+                    <button class="copy-btn" onclick="copyLink()">Copy</button>
+                </div>
                 <p class="info-text">
                     Each encryption is unique, even for the same URL + password.
                     Share the link and password separately for maximum security.
@@ -225,13 +291,16 @@
         <div id="decryptMode" class="hidden">
             <h1>Fragments</h1>
             <h2>Password Protected Link</h2>
-            <div class="security-badge">AES-256-GCM Encryption</div>
             
             <p class="tagline">This link is encrypted. Enter the secret key to unlock:</p>
             <input type="password" id="decryptKey" placeholder="Enter secret key" autofocus>
             <button onclick="decryptLink()" id="decryptBtn">Unlock</button>
             <div id="error" class="error hidden">Incorrect key or corrupted data. Please try again.</div>
         </div>
+    </div>
+    
+    <div class="footer">
+        v1.0.0 | AES-256-GCM + PBKDF2 (100k iterations) | Base77
     </div>
 
     <script>
@@ -445,8 +514,9 @@
                 const encoded = await encryptUrl(url, password);
                 const fullLink = `${window.location.origin}${window.location.pathname}#${encoded}`;
                 
-                document.getElementById('fragment').textContent = encoded;
-                document.getElementById('fullLink').textContent = fullLink;
+                const linkAnchor = document.getElementById('fullLinkAnchor');
+                linkAnchor.href = fullLink;
+                linkAnchor.textContent = fullLink;
                 document.getElementById('createResult').classList.remove('hidden');
             } catch (e) {
                 alert('Encryption failed: ' + e.message);
@@ -513,6 +583,47 @@
                 alert('Decryption failed: ' + e.message);
                 btn.disabled = false;
                 btn.textContent = 'Unlock';
+            }
+        }
+        
+        // Copy link to clipboard
+        async function copyLink() {
+            const link = document.getElementById('fullLinkAnchor').href;
+            const copyBtn = document.querySelector('.copy-btn');
+            
+            try {
+                await navigator.clipboard.writeText(link);
+                copyBtn.textContent = 'Copied!';
+                copyBtn.classList.add('copied');
+                
+                setTimeout(() => {
+                    copyBtn.textContent = 'Copy';
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = link;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    document.execCommand('copy');
+                    copyBtn.textContent = 'Copied!';
+                    copyBtn.classList.add('copied');
+                    
+                    setTimeout(() => {
+                        copyBtn.textContent = 'Copy';
+                        copyBtn.classList.remove('copied');
+                    }, 2000);
+                } catch (err) {
+                    alert('Failed to copy link');
+                }
+                
+                document.body.removeChild(textArea);
             }
         }
         
