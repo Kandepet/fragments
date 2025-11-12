@@ -1,89 +1,237 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Encrypted URL Shortener (Secure)</title>
+    <title>Fragments - Encrypted URL Shortener</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 50px auto;
-            padding: 20px;
-        }
-        input, button {
-            padding: 10px;
-            margin: 5px 0;
-            width: 100%;
+        * {
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
         }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            color: #2d3748;
+        }
+        
+        .tagline {
+            color: #718096;
+            margin-bottom: 32px;
             font-size: 16px;
         }
+        
+        input {
+            width: 100%;
+            padding: 14px 18px;
+            margin-bottom: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f7fafc;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        input[type="password"] {
+            letter-spacing: 2px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
         button:hover {
-            background-color: #45a049;
+            transform: translateY(-1px);
+            box-shadow: 0 7px 14px rgba(0, 0, 0, 0.1);
         }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
         button:disabled {
-            background-color: #cccccc;
+            background: #cbd5e0;
             cursor: not-allowed;
+            transform: none;
         }
+        
         .result {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #f0f0f0;
-            border-radius: 5px;
-            word-break: break-all;
+            margin-top: 24px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
         }
+        
+        .result p {
+            margin-bottom: 12px;
+            color: #4a5568;
+            font-weight: 500;
+        }
+        
+        .result code {
+            display: block;
+            padding: 12px;
+            background: #2d3748;
+            color: #48bb78;
+            border-radius: 6px;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            word-break: break-all;
+            margin-bottom: 12px;
+        }
+        
         .hidden {
             display: none;
         }
+        
         .error {
-            color: red;
-            margin-top: 10px;
+            background: #fed7d7;
+            color: #c53030;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 16px;
+            font-size: 14px;
+            text-align: center;
         }
+        
         .security-badge {
-            background-color: #4CAF50;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 3px;
-            font-size: 12px;
-            display: inline-block;
-            margin-bottom: 10px;
+            background: rgba(72, 187, 120, 0.1);
+            color: #22543d;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 24px;
+            border: 1px solid rgba(72, 187, 120, 0.3);
+        }
+        
+        .security-badge::before {
+            content: '🔒';
+            margin-right: 6px;
+        }
+        
+        .info-text {
+            color: #718096;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-top: 8px;
+        }
+        
+        @media (max-width: 640px) {
+            .container {
+                padding: 24px;
+            }
+            
+            h1 {
+                font-size: 28px;
+            }
+            
+            h2 {
+                font-size: 20px;
+            }
+        }
+        
+        /* Loading animation */
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        button:disabled {
+            animation: pulse 1.5s ease-in-out infinite;
         }
     </style>
 </head>
 <body>
-    <!-- CREATE MODE -->
-    <div id="createMode">
-        <div class="security-badge">🔒 AES-256-GCM Encryption</div>
-        <h2>Create Encrypted Link</h2>
-        <input type="text" id="longUrl" placeholder="Enter URL to encrypt">
-        <input type="password" id="secretKey" placeholder="Enter secret key">
-        <button onclick="createLink()" id="createBtn">Generate Encrypted Link</button>
-        
-        <div id="createResult" class="result hidden">
-            <p><strong>Your encrypted fragment:</strong></p>
-            <code id="fragment"></code>
-            <p><strong>Full link:</strong></p>
-            <code id="fullLink"></code>
-            <p style="margin-top: 15px; color: #666; font-size: 14px;">
-                🔐 Encrypted with AES-256-GCM + PBKDF2 (100,000 iterations)<br>
-                Each encryption is unique, even for the same URL + password.
-            </p>
+    <div class="container">
+        <!-- CREATE MODE -->
+        <div id="createMode">
+            <h1>Fragments</h1>
+            <p class="tagline">Create encrypted, self-destructing URLs</p>
+            <div class="security-badge">AES-256-GCM Encryption</div>
+            
+            <input type="text" id="longUrl" placeholder="Enter URL to encrypt">
+            <input type="password" id="secretKey" placeholder="Create a secret key">
+            <button onclick="createLink()" id="createBtn">Generate Encrypted Link</button>
+            
+            <div id="createResult" class="result hidden">
+                <p>Your encrypted fragment:</p>
+                <code id="fragment"></code>
+                <p>Full link:</p>
+                <code id="fullLink"></code>
+                <p class="info-text">
+                    Each encryption is unique, even for the same URL + password.
+                    Share the link and password separately for maximum security.
+                </p>
+            </div>
         </div>
-    </div>
 
-    <!-- DECRYPT MODE -->
-    <div id="decryptMode" class="hidden">
-        <div class="security-badge">🔒 AES-256-GCM Encryption</div>
-        <h2>Password Protected Link</h2>
-        <p>This link is encrypted. Enter the secret key to continue:</p>
-        <input type="password" id="decryptKey" placeholder="Enter secret key">
-        <button onclick="decryptLink()" id="decryptBtn">Unlock</button>
-        <div id="error" class="error hidden">Incorrect key or corrupted data. Please try again.</div>
+        <!-- DECRYPT MODE -->
+        <div id="decryptMode" class="hidden">
+            <h1>Fragments</h1>
+            <h2>Password Protected Link</h2>
+            <div class="security-badge">AES-256-GCM Encryption</div>
+            
+            <p class="tagline">This link is encrypted. Enter the secret key to unlock:</p>
+            <input type="password" id="decryptKey" placeholder="Enter secret key" autofocus>
+            <button onclick="decryptLink()" id="decryptBtn">Unlock</button>
+            <div id="error" class="error hidden">Incorrect key or corrupted data. Please try again.</div>
+        </div>
     </div>
 
     <script>
