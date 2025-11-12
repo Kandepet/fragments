@@ -1,431 +1,179 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Encrypted URL Shortener</title>
-    <meta name="description" content="Create password-protected, encrypted short links">
+    <title>Encrypted URL Shortener (Secure)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
     <style>
-        * {
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px 0;
+            width: 100%;
             box-sizing: border-box;
         }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
-        
-        .container {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        }
-        
-        h1 {
-            margin-top: 0;
-            color: #333;
-            font-size: 28px;
-        }
-        
-        h2 {
-            color: #555;
-            font-size: 22px;
-            margin-top: 0;
-        }
-        
-        input, button {
-            padding: 12px;
-            margin: 8px 0;
-            width: 100%;
-            border-radius: 6px;
-            border: 1px solid #ddd;
-            font-size: 16px;
-        }
-        
-        input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        
         button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #4CAF50;
             color: white;
             border: none;
             cursor: pointer;
-            font-weight: 600;
-            transition: transform 0.1s, box-shadow 0.1s;
+            font-size: 16px;
         }
-        
         button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            background-color: #45a049;
         }
-        
-        button:active {
-            transform: translateY(0);
-        }
-        
         button:disabled {
-            background: #cccccc;
+            background-color: #cccccc;
             cursor: not-allowed;
-            transform: none;
         }
-        
         .result {
             margin-top: 20px;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
             word-break: break-all;
-            border: 1px solid #e9ecef;
         }
-        
-        .result code {
-            background: white;
-            padding: 8px;
-            border-radius: 4px;
-            display: block;
-            margin: 8px 0;
-            font-size: 13px;
-            border: 1px solid #dee2e6;
-        }
-        
         .hidden {
             display: none;
         }
-        
         .error {
-            color: #dc3545;
+            color: red;
             margin-top: 10px;
-            padding: 10px;
-            background: #f8d7da;
-            border-radius: 6px;
-            border: 1px solid #f5c6cb;
         }
-        
         .security-badge {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            background-color: #4CAF50;
             color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
+            padding: 5px 10px;
+            border-radius: 3px;
             font-size: 12px;
             display: inline-block;
-            margin-bottom: 15px;
-            font-weight: 600;
-        }
-        
-        .stats {
-            font-size: 13px;
-            color: #666;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #dee2e6;
-        }
-        
-        .stats p {
-            margin: 5px 0;
-        }
-        
-        .info {
-            margin-top: 15px;
-            padding: 12px;
-            background-color: #e7f3ff;
-            border-radius: 6px;
-            font-size: 13px;
-            color: #004085;
-            border: 1px solid #b8daff;
-        }
-        
-        .warning {
-            background: #fff3cd;
-            border: 1px solid #ffc107;
-            color: #856404;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        
-        .warning h2 {
-            margin-top: 0;
-            color: #856404;
-        }
-        
-        @media (max-width: 640px) {
-            body {
-                padding: 10px;
-            }
-            
-            .container {
-                padding: 20px;
-            }
-            
-            h1 {
-                font-size: 24px;
-            }
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- CREATE MODE -->
-        <div id="createMode">
-            <div class="security-badge">🔒 AES-256-GCM Encryption</div>
-            <h1>Encrypted URL Shortener</h1>
-            <p style="color: #666; margin-bottom: 25px;">Create password-protected links with military-grade encryption</p>
-            
-            <input type="text" id="longUrl" placeholder="Enter URL to encrypt" autocomplete="off">
-            <input type="password" id="secretKey" placeholder="Enter secret key" autocomplete="new-password">
-            <button onclick="createLink()" id="createBtn">🔐 Generate Encrypted Link</button>
-            
-            <div id="createResult" class="result hidden">
-                <p><strong>✅ Encrypted Successfully!</strong></p>
-                <p style="font-size: 13px; color: #666;">Share this link:</p>
-                <code id="fullLink"></code>
-                
-                <div class="stats">
-                    <p>📊 Original URL: <strong><span id="origSize"></span> chars</strong></p>
-                    <p>📊 Fragment size: <strong><span id="fragSize"></span> chars</strong></p>
-                    <p>📊 Compression: <strong><span id="savings"></span>% smaller</strong></p>
-                </div>
-                
-                <div class="info">
-                    🔐 This link is encrypted with AES-256-GCM + PBKDF2 (100,000 iterations)<br>
-                    ⚡ Optimized with URL preprocessing, LZ-String compression, and Base85 encoding<br>
-                    🔒 Only someone with the secret key can access the URL
-                </div>
-            </div>
-        </div>
-
-        <!-- DECRYPT MODE -->
-        <div id="decryptMode" class="hidden">
-            <div class="security-badge">🔒 Password Protected</div>
-            <h2>🔐 This link is encrypted</h2>
-            <p style="color: #666;">Enter the secret key to unlock and continue to the destination.</p>
-            
-            <input type="password" id="decryptKey" placeholder="Enter secret key" autocomplete="off">
-            <button onclick="decryptLink()" id="decryptBtn">🔓 Unlock & Redirect</button>
-            
-            <div id="error" class="error hidden">
-                ❌ Incorrect key or corrupted data. Please try again.
-            </div>
+    <!-- CREATE MODE -->
+    <div id="createMode">
+        <div class="security-badge">🔒 AES-256-GCM Encryption</div>
+        <h2>Create Encrypted Link</h2>
+        <input type="text" id="longUrl" placeholder="Enter URL to encrypt">
+        <input type="password" id="secretKey" placeholder="Enter secret key">
+        <button onclick="createLink()" id="createBtn">Generate Encrypted Link</button>
+        
+        <div id="createResult" class="result hidden">
+            <p><strong>Your encrypted fragment:</strong></p>
+            <code id="fragment"></code>
+            <p><strong>Full link:</strong></p>
+            <code id="fullLink"></code>
+            <p style="margin-top: 15px; color: #666; font-size: 14px;">
+                🔐 Encrypted with AES-256-GCM + PBKDF2 (100,000 iterations)<br>
+                Each encryption is unique, even for the same URL + password.
+            </p>
         </div>
     </div>
 
-    <script>
-        // Check for Web Crypto API on page load
-        if (!window.crypto || !window.crypto.subtle) {
-            document.querySelector('.container').innerHTML = `
-                <div class="warning">
-                    <h2>⚠️ Secure Context Required</h2>
-                    <p><strong>This application requires HTTPS or localhost.</strong></p>
-                    <p>The Web Crypto API is not available because this page was loaded over HTTP.</p>
-                    <h3>Solutions:</h3>
-                    <ul>
-                        <li><strong>GitHub Pages:</strong> Enable HTTPS in Settings → Pages → Enforce HTTPS</li>
-                        <li><strong>Local Testing:</strong> Access via <code>localhost</code> or <code>127.0.0.1</code></li>
-                        <li><strong>Custom Domain:</strong> Ensure HTTPS is properly configured</li>
-                    </ul>
-                    <p style="margin-top: 15px;">Current URL: <code>${window.location.href}</code></p>
-                </div>
-            `;
-        }
+    <!-- DECRYPT MODE -->
+    <div id="decryptMode" class="hidden">
+        <div class="security-badge">🔒 AES-256-GCM Encryption</div>
+        <h2>Password Protected Link</h2>
+        <p>This link is encrypted. Enter the secret key to continue:</p>
+        <input type="password" id="decryptKey" placeholder="Enter secret key">
+        <button onclick="decryptLink()" id="decryptBtn">Unlock</button>
+        <div id="error" class="error hidden">Incorrect key or corrupted data. Please try again.</div>
+    </div>
 
-        // ========== BASE85 ENCODING ==========
-        const BASE85 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~';
+    <script>
+        // Base62 characters for encoding
+        const BASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
         
-        function arrayBufferToBase85(buffer) {
+        // Convert ArrayBuffer to base62 string
+        function arrayBufferToBase62(buffer) {
             const bytes = new Uint8Array(buffer);
-            const originalLength = bytes.length;
-            let result = '';
-            
-            // Encode the data
-            for (let i = 0; i < bytes.length; i += 4) {
-                let value = 0;
-                let numBytes = Math.min(4, bytes.length - i);
-                
-                for (let j = 0; j < numBytes; j++) {
-                    value = (value << 8) | bytes[i + j];
-                }
-                
-                // Pad with zeros if needed
-                for (let j = numBytes; j < 4; j++) {
-                    value = value << 8;
-                }
-                
-                // Convert to base85 (5 characters)
-                const chars = [];
-                for (let j = 0; j < 5; j++) {
-                    chars.unshift(BASE85[value % 85]);
-                    value = Math.floor(value / 85);
-                }
-                
-                result += chars.join('');
+            let num = 0n;
+            for (let byte of bytes) {
+                num = num * 256n + BigInt(byte);
             }
+            if (num === 0n) return BASE62[0];
             
-            // Prepend the original length (encoded in base85)
-            // This allows us to remove padding bytes during decoding
-            const lengthEncoded = originalLength.toString(36); // Use base36 for compactness
-            return lengthEncoded + ':' + result;
+            let result = '';
+            while (num > 0n) {
+                result = BASE62[Number(num % 62n)] + result;
+                num = num / 62n;
+            }
+            return result;
         }
         
-        function base85ToArrayBuffer(str) {
-            // Extract the original length if present (new format)
-            const colonIndex = str.indexOf(':');
-            let originalLength;
-            let encoded;
-            
-            if (colonIndex !== -1 && colonIndex <= 10) { // Reasonable length prefix size
-                // New format with length prefix
-                try {
-                    originalLength = parseInt(str.substring(0, colonIndex), 36);
-                    encoded = str.substring(colonIndex + 1);
-                } catch (e) {
-                    // If parsing fails, treat as old format
-                    originalLength = null;
-                    encoded = str;
-                }
-            } else {
-                // Old format without length prefix
-                originalLength = null;
-                encoded = str;
+        // Convert base62 string to ArrayBuffer
+        function base62ToArrayBuffer(str) {
+            let num = 0n;
+            for (let char of str) {
+                const idx = BASE62.indexOf(char);
+                if (idx === -1) throw new Error('Invalid base62 character');
+                num = num * 62n + BigInt(idx);
             }
             
             const bytes = [];
-            
-            // Decode all groups
-            for (let i = 0; i < encoded.length; i += 5) {
-                let value = 0;
-                
-                for (let j = 0; j < 5 && i + j < encoded.length; j++) {
-                    const idx = BASE85.indexOf(encoded[i + j]);
-                    if (idx === -1) throw new Error('Invalid base85 character');
-                    value = value * 85 + idx;
-                }
-                
-                // Extract 4 bytes
-                for (let j = 3; j >= 0; j--) {
-                    bytes.push((value >> (j * 8)) & 0xFF);
-                }
+            while (num > 0n) {
+                bytes.unshift(Number(num % 256n));
+                num = num / 256n;
             }
             
-            // If we have original length, trim to it (removes padding bytes)
-            // Otherwise, return all decoded bytes (old format compatibility)
-            if (originalLength !== null) {
-                return new Uint8Array(bytes.slice(0, originalLength)).buffer;
-            } else {
-                return new Uint8Array(bytes).buffer;
-            }
+            return new Uint8Array(bytes).buffer;
         }
         
-        // ========== URL OPTIMIZATION ==========
-        const URL_OPTIMIZATIONS = {
-            HTTPS_WWW: 1,
-            HTTPS: 2,
-            HTTP_WWW: 3,
-            HTTP: 4,
-            NONE: 0
-        };
-        
-        function optimizeUrl(url) {
-            let optimized = url;
-            let type = URL_OPTIMIZATIONS.NONE;
-            
-            if (url.startsWith('https://www.')) {
-                optimized = url.substring(12);
-                type = URL_OPTIMIZATIONS.HTTPS_WWW;
-            } else if (url.startsWith('https://')) {
-                optimized = url.substring(8);
-                type = URL_OPTIMIZATIONS.HTTPS;
-            } else if (url.startsWith('http://www.')) {
-                optimized = url.substring(11);
-                type = URL_OPTIMIZATIONS.HTTP_WWW;
-            } else if (url.startsWith('http://')) {
-                optimized = url.substring(7);
-                type = URL_OPTIMIZATIONS.HTTP;
-            }
-            
-            return { url: optimized, type: type };
-        }
-        
-        function deoptimizeUrl(optimized, type) {
-            switch (type) {
-                case URL_OPTIMIZATIONS.HTTPS_WWW:
-                    return 'https://www.' + optimized;
-                case URL_OPTIMIZATIONS.HTTPS:
-                    return 'https://' + optimized;
-                case URL_OPTIMIZATIONS.HTTP_WWW:
-                    return 'http://www.' + optimized;
-                case URL_OPTIMIZATIONS.HTTP:
-                    return 'http://' + optimized;
-                default:
-                    return optimized;
-            }
-        }
-        
-        // ========== KEY DERIVATION ==========
-        async function deriveKeyAndIV(password, salt) {
+        // Derive encryption key from password using PBKDF2
+        async function deriveKey(password, salt) {
             const encoder = new TextEncoder();
             const passwordBuffer = encoder.encode(password);
             
+            // Import password as key material
             const keyMaterial = await crypto.subtle.importKey(
                 'raw',
                 passwordBuffer,
                 'PBKDF2',
                 false,
-                ['deriveKey', 'deriveBits']
+                ['deriveKey']
             );
             
-            const key = await crypto.subtle.deriveKey(
+            // Derive actual encryption key
+            return await crypto.subtle.deriveKey(
                 {
                     name: 'PBKDF2',
                     salt: salt,
-                    iterations: 100000,
+                    iterations: 100000,  // High iteration count for security
                     hash: 'SHA-256'
                 },
                 keyMaterial,
                 {
                     name: 'AES-GCM',
-                    length: 256
+                    length: 256  // 256-bit key
                 },
                 false,
                 ['encrypt', 'decrypt']
             );
-            
-            const ivBits = await crypto.subtle.deriveBits(
-                {
-                    name: 'PBKDF2',
-                    salt: new Uint8Array([...salt, 0xFF]),
-                    iterations: 100000,
-                    hash: 'SHA-256'
-                },
-                keyMaterial,
-                96
-            );
-            
-            return { 
-                key: key, 
-                iv: new Uint8Array(ivBits)
-            };
         }
         
-        // ========== ENCRYPTION/DECRYPTION ==========
+        // Encrypt URL with password
         async function encryptUrl(url, password) {
-            const { url: optimizedUrl, type: urlType } = optimizeUrl(url);
-            const compressed = LZString.compressToEncodedURIComponent(optimizedUrl);
-            const dataWithType = String.fromCharCode(urlType) + compressed;
+            // Step 1: Compress the URL
+            const compressed = LZString.compressToEncodedURIComponent(url);
             const encoder = new TextEncoder();
-            const data = encoder.encode(dataWithType);
+            const data = encoder.encode(compressed);
             
+            // Step 2: Generate random salt (16 bytes)
             const salt = crypto.getRandomValues(new Uint8Array(16));
-            const { key, iv } = await deriveKeyAndIV(password, salt);
             
+            // Step 3: Generate random IV (12 bytes for GCM)
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            
+            // Step 4: Derive encryption key from password
+            const key = await deriveKey(password, salt);
+            
+            // Step 5: Encrypt with AES-GCM
             const encrypted = await crypto.subtle.encrypt(
                 {
                     name: 'AES-GCM',
@@ -435,23 +183,32 @@
                 data
             );
             
-            const combined = new Uint8Array(salt.length + encrypted.byteLength);
+            // Step 6: Combine salt + iv + encrypted data
+            const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
             combined.set(salt, 0);
-            combined.set(new Uint8Array(encrypted), salt.length);
+            combined.set(iv, salt.length);
+            combined.set(new Uint8Array(encrypted), salt.length + iv.length);
             
-            return arrayBufferToBase85(combined.buffer);
+            // Step 7: Convert to base62
+            return arrayBufferToBase62(combined.buffer);
         }
         
+        // Decrypt URL with password
         async function decryptUrl(encoded, password) {
             try {
-                const combined = base85ToArrayBuffer(encoded);
+                // Step 1: Convert from base62
+                const combined = base62ToArrayBuffer(encoded);
                 const combinedArray = new Uint8Array(combined);
                 
+                // Step 2: Extract salt, iv, and encrypted data
                 const salt = combinedArray.slice(0, 16);
-                const encryptedData = combinedArray.slice(16);
+                const iv = combinedArray.slice(16, 28);
+                const encryptedData = combinedArray.slice(28);
                 
-                const { key, iv } = await deriveKeyAndIV(password, salt);
+                // Step 3: Derive key from password
+                const key = await deriveKey(password, salt);
                 
+                // Step 4: Decrypt with AES-GCM
                 const decrypted = await crypto.subtle.decrypt(
                     {
                         name: 'AES-GCM',
@@ -461,22 +218,19 @@
                     encryptedData
                 );
                 
+                // Step 5: Decompress
                 const decoder = new TextDecoder();
-                const dataWithType = decoder.decode(decrypted);
-                
-                const urlType = dataWithType.charCodeAt(0);
-                const compressed = dataWithType.substring(1);
-                const optimizedUrl = LZString.decompressFromEncodedURIComponent(compressed);
-                
-                const url = deoptimizeUrl(optimizedUrl, urlType);
+                const compressed = decoder.decode(decrypted);
+                const url = LZString.decompressFromEncodedURIComponent(compressed);
                 
                 return url;
             } catch (e) {
-                console.error('Decryption error:', e);
+                // Decryption failed (wrong password or corrupted data)
                 return null;
             }
         }
         
+        // Normalize URL to include protocol
         function normalizeUrl(url) {
             url = url.trim();
             if (/^https?:\/\//i.test(url)) {
@@ -488,7 +242,7 @@
             return 'https://' + url;
         }
         
-        // ========== UI FUNCTIONS ==========
+        // Create encrypted link
         async function createLink() {
             const rawUrl = document.getElementById('longUrl').value.trim();
             const password = document.getElementById('secretKey').value;
@@ -503,32 +257,28 @@
                 return;
             }
             
+            // Disable button during encryption
             const btn = document.getElementById('createBtn');
             btn.disabled = true;
-            btn.textContent = '🔄 Encrypting...';
+            btn.textContent = 'Encrypting...';
             
             try {
                 const url = normalizeUrl(rawUrl);
                 const encoded = await encryptUrl(url, password);
                 const fullLink = `${window.location.origin}${window.location.pathname}#${encoded}`;
                 
+                document.getElementById('fragment').textContent = encoded;
                 document.getElementById('fullLink').textContent = fullLink;
-                
-                const savings = Math.round((1 - encoded.length / url.length) * 100);
-                document.getElementById('origSize').textContent = url.length;
-                document.getElementById('fragSize').textContent = encoded.length;
-                document.getElementById('savings').textContent = savings > 0 ? savings : 0;
-                
                 document.getElementById('createResult').classList.remove('hidden');
             } catch (e) {
                 alert('Encryption failed: ' + e.message);
-                console.error(e);
             } finally {
                 btn.disabled = false;
-                btn.textContent = '🔐 Generate Encrypted Link';
+                btn.textContent = 'Generate Encrypted Link';
             }
         }
         
+        // Decrypt link
         async function decryptLink() {
             const fragment = window.location.hash.slice(1);
             const password = document.getElementById('decryptKey').value;
@@ -538,38 +288,41 @@
                 return;
             }
             
+            // Disable button during decryption
             const btn = document.getElementById('decryptBtn');
             btn.disabled = true;
-            btn.textContent = '🔄 Decrypting...';
+            btn.textContent = 'Decrypting...';
             
             try {
                 const decoded = await decryptUrl(fragment, password);
                 
                 if (decoded) {
-                    document.querySelector('.container').innerHTML = '<h1 style="text-align: center; color: #28a745;">✓ Unlocked! Redirecting...</h1>';
+                    // Success! Redirect
+                    document.body.innerHTML = '<h1>✓ Unlocked! Redirecting...</h1>';
                     setTimeout(() => {
                         window.location.replace(decoded);
                     }, 500);
                 } else {
+                    // Wrong password
                     document.getElementById('error').classList.remove('hidden');
                     document.getElementById('decryptKey').value = '';
                     document.getElementById('decryptKey').focus();
                     btn.disabled = false;
-                    btn.textContent = '🔓 Unlock & Redirect';
+                    btn.textContent = 'Unlock';
                 }
             } catch (e) {
                 alert('Decryption failed: ' + e.message);
-                console.error(e);
                 btn.disabled = false;
-                btn.textContent = '🔓 Unlock & Redirect';
+                btn.textContent = 'Unlock';
             }
         }
         
-        // ========== PAGE LOAD ==========
+        // Check mode on page load
         window.addEventListener('DOMContentLoaded', () => {
             const fragment = window.location.hash.slice(1);
             
             if (fragment) {
+                // DECRYPT MODE
                 document.getElementById('createMode').classList.add('hidden');
                 document.getElementById('decryptMode').classList.remove('hidden');
                 
