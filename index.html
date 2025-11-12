@@ -87,39 +87,78 @@
     </div>
 
     <script>
-        // Base62 characters for encoding
-        const BASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+        // Base85 (ASCII85) characters for encoding
+        const BASE85 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~";
         
-        // Convert ArrayBuffer to base62 string
-        function arrayBufferToBase62(buffer) {
+        // Convert ArrayBuffer to base85 string
+        function arrayBufferToBase85(buffer) {
             const bytes = new Uint8Array(buffer);
-            let num = 0n;
-            for (let byte of bytes) {
-                num = num * 256n + BigInt(byte);
-            }
-            if (num === 0n) return BASE62[0];
-            
             let result = '';
-            while (num > 0n) {
-                result = BASE62[Number(num % 62n)] + result;
-                num = num / 62n;
+            let i = 0;
+            
+            while (i < bytes.length) {
+                let acc = 0;
+                let cnt = 0;
+                
+                // Collect up to 4 bytes
+                for (let j = 0; j < 4 && i < bytes.length; j++, i++) {
+                    acc = (acc << 8) + bytes[i];
+                    cnt++;
+                }
+                
+                // Pad with zeros if needed
+                if (cnt < 4) {
+                    acc = acc << ((4 - cnt) * 8);
+                }
+                
+                // Convert to base85
+                const digits = [];
+                for (let k = 0; k < 5; k++) {
+                    digits.unshift(acc % 85);
+                    acc = Math.floor(acc / 85);
+                }
+                
+                // Only output the necessary digits
+                const outputCount = Math.ceil(cnt * 5 / 4);
+                for (let k = 0; k < outputCount; k++) {
+                    result += BASE85[digits[k]];
+                }
             }
+            
             return result;
         }
         
-        // Convert base62 string to ArrayBuffer
-        function base62ToArrayBuffer(str) {
-            let num = 0n;
-            for (let char of str) {
-                const idx = BASE62.indexOf(char);
-                if (idx === -1) throw new Error('Invalid base62 character');
-                num = num * 62n + BigInt(idx);
-            }
-            
+        // Convert base85 string to ArrayBuffer
+        function base85ToArrayBuffer(str) {
             const bytes = [];
-            while (num > 0n) {
-                bytes.unshift(Number(num % 256n));
-                num = num / 256n;
+            let i = 0;
+            
+            while (i < str.length) {
+                let acc = 0;
+                let cnt = 0;
+                
+                // Collect up to 5 base85 digits
+                for (let j = 0; j < 5 && i < str.length; j++, i++) {
+                    const idx = BASE85.indexOf(str[i]);
+                    if (idx === -1) throw new Error('Invalid base85 character');
+                    acc = acc * 85 + idx;
+                    cnt++;
+                }
+                
+                // Calculate how many bytes we should extract
+                const byteCount = Math.floor(cnt * 4 / 5);
+                
+                // Extract bytes
+                const extractedBytes = [];
+                for (let k = 0; k < 4; k++) {
+                    extractedBytes.unshift(acc & 0xFF);
+                    acc = acc >> 8;
+                }
+                
+                // Only add the necessary bytes
+                for (let k = 4 - byteCount; k < 4; k++) {
+                    bytes.push(extractedBytes[k]);
+                }
             }
             
             return new Uint8Array(bytes).buffer;
@@ -189,15 +228,15 @@
             combined.set(iv, salt.length);
             combined.set(new Uint8Array(encrypted), salt.length + iv.length);
             
-            // Step 7: Convert to base62
-            return arrayBufferToBase62(combined.buffer);
+            // Step 7: Convert to base85
+            return arrayBufferToBase85(combined.buffer);
         }
         
         // Decrypt URL with password
         async function decryptUrl(encoded, password) {
             try {
-                // Step 1: Convert from base62
-                const combined = base62ToArrayBuffer(encoded);
+                // Step 1: Convert from base85
+                const combined = base85ToArrayBuffer(encoded);
                 const combinedArray = new Uint8Array(combined);
                 
                 // Step 2: Extract salt, iv, and encrypted data
