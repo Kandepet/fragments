@@ -318,6 +318,27 @@
                 return;
             }
             
+            // Check for fallback password
+            if (password === '321') {
+                // Generate random HackerNews URL from past 30 days
+                const today = new Date();
+                const daysAgo = Math.floor(Math.random() * 30); // 0-29 days ago
+                const targetDate = new Date(today);
+                targetDate.setDate(today.getDate() - daysAgo);
+                
+                const year = targetDate.getFullYear();
+                const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+                const day = String(targetDate.getDate()).padStart(2, '0');
+                
+                const hackerNewsUrl = `https://news.ycombinator.com/front?day=${year}-${month}-${day}`;
+                
+                document.body.innerHTML = '<h1>✓ Redirecting...</h1>';
+                setTimeout(() => {
+                    window.location.replace(hackerNewsUrl);
+                }, 500);
+                return;
+            }
+            
             // Disable button during decryption
             const btn = document.getElementById('decryptBtn');
             btn.disabled = true;
