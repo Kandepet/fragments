@@ -276,14 +276,26 @@
         }
         
         function base85ToArrayBuffer(str) {
-            // Extract the original length
+            // Extract the original length if present (new format)
             const colonIndex = str.indexOf(':');
-            if (colonIndex === -1) {
-                throw new Error('Invalid base85 format - missing length prefix');
-            }
+            let originalLength;
+            let encoded;
             
-            const originalLength = parseInt(str.substring(0, colonIndex), 36);
-            const encoded = str.substring(colonIndex + 1);
+            if (colonIndex !== -1 && colonIndex <= 10) { // Reasonable length prefix size
+                // New format with length prefix
+                try {
+                    originalLength = parseInt(str.substring(0, colonIndex), 36);
+                    encoded = str.substring(colonIndex + 1);
+                } catch (e) {
+                    // If parsing fails, treat as old format
+                    originalLength = null;
+                    encoded = str;
+                }
+            } else {
+                // Old format without length prefix
+                originalLength = null;
+                encoded = str;
+            }
             
             const bytes = [];
             
@@ -303,8 +315,13 @@
                 }
             }
             
-            // Trim to original length (removes padding bytes)
-            return new Uint8Array(bytes.slice(0, originalLength)).buffer;
+            // If we have original length, trim to it (removes padding bytes)
+            // Otherwise, return all decoded bytes (old format compatibility)
+            if (originalLength !== null) {
+                return new Uint8Array(bytes.slice(0, originalLength)).buffer;
+            } else {
+                return new Uint8Array(bytes).buffer;
+            }
         }
         
         // ========== URL OPTIMIZATION ==========
