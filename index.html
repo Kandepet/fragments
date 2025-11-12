@@ -215,16 +215,11 @@
         }
         
         .link-container {
-            position: relative;
-            display: flex;
-            align-items: center;
-            gap: 8px;
             margin-bottom: 12px;
         }
         
         .link-container code {
-            flex: 1;
-            margin-bottom: 0;
+            margin-bottom: 8px;
         }
         
         .link-container a {
@@ -237,15 +232,17 @@
         }
         
         .copy-btn {
-            padding: 8px 12px;
+            padding: 10px 16px;
             background: #4a5568;
             color: white;
             border: none;
             border-radius: 6px;
-            font-size: 12px;
+            font-size: 13px;
             cursor: pointer;
             white-space: nowrap;
             transition: all 0.2s ease;
+            width: 100%;
+            margin-top: 8px;
         }
         
         .copy-btn:hover {
@@ -278,8 +275,8 @@
                 <p>Encrypted link:</p>
                 <div class="link-container">
                     <code><a id="fullLinkAnchor" href="#" target="_blank"></a></code>
-                    <button class="copy-btn" onclick="copyLink()">Copy</button>
                 </div>
+                <button class="copy-btn" onclick="copyLink()">Copy Link</button>
                 <p class="info-text">
                     Each encryption is unique, even for the same URL + password.
                     Share the link and password separately for maximum security.
