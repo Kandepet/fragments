@@ -102,11 +102,13 @@
                 // Convert to unsigned 32-bit
                 value = value >>> 0;
                 
-                // Extract 5 base85 digits
-                for (let j = 4; j >= 0; j--) {
-                    result += BASE85[value % 85];
+                // Extract 5 base85 digits (in reverse order for proper encoding)
+                const chars = [];
+                for (let j = 0; j < 5; j++) {
+                    chars.push(BASE85[value % 85]);
                     value = Math.floor(value / 85);
                 }
+                result += chars.reverse().join('');
             }
             
             // Handle remaining bytes (if any)
@@ -128,8 +130,8 @@
                     value = Math.floor(value / 85);
                 }
                 
-                // Output only the required digits
-                for (let j = 0; j < digitCount; j++) {
+                // Output only the required digits (reversed)
+                for (let j = digitCount - 1; j >= 0; j--) {
                     result += BASE85[digits[j]];
                 }
             }
@@ -146,8 +148,8 @@
             for (i = 0; i + 4 < str.length; i += 5) {
                 let value = 0;
                 
-                // Decode 5 base85 characters
-                for (let j = 4; j >= 0; j--) {
+                // Decode 5 base85 characters (most significant first)
+                for (let j = 0; j < 5; j++) {
                     const idx = BASE85.indexOf(str[i + j]);
                     if (idx === -1) throw new Error('Invalid base85 character');
                     value = value * 85 + idx;
@@ -164,8 +166,8 @@
             if (remaining > 0) {
                 let value = 0;
                 
-                // Decode remaining base85 characters
-                for (let j = remaining - 1; j >= 0; j--) {
+                // Decode remaining base85 characters (most significant first)
+                for (let j = 0; j < remaining; j++) {
                     const idx = BASE85.indexOf(str[i + j]);
                     if (idx === -1) throw new Error('Invalid base85 character');
                     value = value * 85 + idx;
